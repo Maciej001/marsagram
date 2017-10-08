@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import "./App.css";
 
 import Rovers from "./Rovers";
-import Cameras from "./Cameras";
+import CamerasWithLoadingOrEmpty from "./withCamerasLoadingOrEmpty";
 import Navigation from "./Navigation";
 import Images from "./Images";
 
@@ -26,8 +26,6 @@ class App extends Component {
       opportunity: [],
       spirit: []
     },
-    error: null,
-    isLoadingCameras: true,
     sol: 78
   };
 
@@ -80,7 +78,7 @@ class App extends Component {
 
   onSolDecrease = () =>
     this.onSolChange(solChangeDirection.decrease, this.state.sol);
-    
+
   onSolIncrease = () =>
     this.onSolChange(solChangeDirection.increase, this.state.sol);
 
@@ -114,7 +112,7 @@ class App extends Component {
           onClick={this.onRoverClick}
         />
 
-        <Cameras
+        <CamerasWithLoadingOrEmpty
           cameras={this.state.cameras}
           activeCamera={this.state.activeCamera}
           onClick={this.onCameraClick}

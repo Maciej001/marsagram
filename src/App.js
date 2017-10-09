@@ -5,9 +5,11 @@ import Rovers from "./Rovers";
 import CamerasWithLoadingOrEmpty from "./withCamerasLoadingOrEmpty";
 import Navigation from "./Navigation";
 import Images from "./Images";
+import withFetching from "./WithFetching";
 
 const API = "https://api.nasa.gov/mars-photos/api/v1/manifests/";
 const API_KEY = "LbFYO3SNWbNiztw71oMQpzChpytNi5uFxhKe7ZR0";
+const API_IMAGES = "https://api.nasa.gov/mars-photos/api/v1/rovers/";
 
 const rovers = ["curiosity", "opportunity", "spirit"];
 
@@ -26,7 +28,7 @@ class App extends Component {
       opportunity: [],
       spirit: []
     },
-    sol: 78
+    sol: 3
   };
 
   componentDidMount() {
@@ -102,6 +104,10 @@ class App extends Component {
   };
 
   render() {
+    const imagesQuery = `${this.state.activeRover}/photos?sol=${this.state
+      .sol}&camera=${this.state.activeCamera}&api_key=${API_KEY}`;
+    const ImagesWithFetching = withFetching(API_IMAGES + imagesQuery)(Images);
+
     return (
       <div className="container">
         <h1>Marsagram</h1>
@@ -125,11 +131,7 @@ class App extends Component {
           onSolIncrease={this.onSolIncrease}
         />
 
-        <Images
-          rover={this.state.activeRover}
-          camera={this.state.activeCamera}
-          sol={this.state.sol}
-        />
+        {this.state.cameras && <ImagesWithFetching />}
       </div>
     );
   }

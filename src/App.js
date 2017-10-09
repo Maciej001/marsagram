@@ -1,11 +1,22 @@
 import React, { Component } from "react";
+import { connect } from "react-redux";
+import {
+  doSetRover,
+  doSetSol,
+  doSetCameras,
+  doSetCamera,
+  doSetPhotos,
+  doIsLoadingCameras,
+  doSetManifestLoadingError,
+} from "./appReducer";
+
 import "./App.css";
 
 import Rovers from "./Rovers";
-import CamerasWithLoadingOrEmpty from "./withCamerasLoadingOrEmpty";
+import CameraWithLoadingOrEmpty from "./CameraWithLoadingOrEmpty";
 import Navigation from "./Navigation";
 import Images from "./Images";
-import withFetching from "./WithFetching";
+import ImagesWithFetching from "./ImagesWithFetching";
 
 const API = "https://api.nasa.gov/mars-photos/api/v1/manifests/";
 const API_KEY = "LbFYO3SNWbNiztw71oMQpzChpytNi5uFxhKe7ZR0";
@@ -19,30 +30,27 @@ const solChangeDirection = {
 };
 
 class App extends Component {
-  state = {
-    activeRover: "curiosity",
-    cameras: [],
-    activeCamera: "",
-    photos: {
-      curiosity: [],
-      opportunity: [],
-      spirit: []
-    },
-    sol: 3
-  };
 
   componentDidMount() {
-    this.fetchManifest(this.state.activeRover);
+    this.fetchManifest(this.props.activeRover);
   }
 
   fetchManifest = rover => {
+    const {
+      sol,
+      photos,
+      onSetPhotos,
+      onSetCameras,
+      onManifestLoadingError,
+      onIsLoadingCameras
+    } = this.props;
 
-    // Fetch manifest data for chosen rover if is's not present in state yet
-
-    if (this.state.photos[rover].length === 0) {
+    if (photos[rover].length === 0) {
       this.setState({ isLoadingCameras: true });
 
       const query = `${rover}?api_key=${API_KEY}`;
+
+      onIsLoadingCameras(true);
 
       fetch(API + query)
         .then(response => {
@@ -53,88 +61,115 @@ class App extends Component {
           }
         })
         .then(data => {
+          onIsLoadingCameras(false);
           const photos = data.photo_manifest.photos;
 
-          this.setState({
-            photos: { ...this.state.photos, [`${rover}`]: photos },
-            isLoadingCameras: false
-          });
-          this.setCameras({
-            photos,
-            sol: this.state.sol
-          });
+          onSetPhotos(photos, rover);
+
+          const cameras = photos.find( photo =>
+            photo.sol === sol).cameras;
+
+          onSetCameras(cameras);
         })
-        .catch(error => this.setState({ error, isLoadingCameras: false }));
+        .catch(error => {
+          onManifestLoadingError(error);
+          onIsLoadingCameras(false);
+        });
     }
   };
 
   onRoverClick = e => {
-    this.setState({
-      activeRover: e.target.dataset.name
-    });
-
-    this.fetchManifest(e.target.dataset.name);
+    const rover = e.target.dataset.name;
+    this.props.onSetRover(rover);
+    this.fetchManifest(rover);
   };
 
-  onCameraClick = e => this.setState({ activeCamera: e.target.dataset.name });
+  onCameraClick = e => this.props.onSetCamera(e.target.dataset.name);
 
   onSolDecrease = () =>
-    this.onSolChange(solChangeDirection.decrease, this.state.sol);
+    this.onSolChange(this.props.sol, solChangeDirection.decrease);
 
   onSolIncrease = () =>
-    this.onSolChange(solChangeDirection.increase, this.state.sol);
+    this.onSolChange(this.props.sol, solChangeDirection.increase);
 
   // sol numbers start at 0
-  onSolChange = (direction, sol) => {
-    if (sol + direction >= 0) {
-      this.setState({ sol: sol + direction });
-    }
+  onSolChange = (sol, direction) => {
+    this.props.onSetSol(sol, direction)
+
     this.setCameras({
       photos: this.state.photos[this.state.activeRover],
-      sol: sol + direction
+      sol: this.props.sol + direction
     });
   };
 
-  setCameras = ({ photos, sol }) => {
-    const cameras = photos.find(photo => photo.sol === sol);
-    this.setState({
-      cameras: cameras ? photos[sol].cameras : null,
-      activeCamera: cameras ? photos[sol].cameras[0] : null
-    });
+  onSolChange = (sol, direction) => {
+    this.props.onSetSol(sol, direction);
+
+    const photos = this.props.photos[this.props.activeRover];
+    const solPhotos =
+      photos.find(photo => photo.sol === this.props.sol)
+    const cameras = solPhotos ? solPhotos.cameras : [];
+    this.props.onSetCameras(cameras);
   };
 
   render() {
-    const imagesQuery = `${this.state.activeRover}/photos?sol=${this.state
-      .sol}&camera=${this.state.activeCamera}&api_key=${API_KEY}`;
-    const ImagesWithFetching = withFetching(API_IMAGES + imagesQuery)(Images);
+    const imagesQuery = `${this.props.activeRover}/photos?sol=${this.props
+      .sol}&camera=${this.props.activeCamera}&api_key=${API_KEY}`;
+
+    const messages = {
+      onLoading: "Loading cameras...",
+      onNoData: "No data for chosen sol."
+    }
 
     return (
       <div className="container">
         <h1>Marsagram</h1>
 
         <Rovers
-          rovers={rovers}
-          activeRover={this.state.activeRover}
+          rovers={this.props.rovers}
+          activeRover={this.props.activeRover}
           onClick={this.onRoverClick}
         />
 
-        <CamerasWithLoadingOrEmpty
-          cameras={this.state.cameras}
-          activeCamera={this.state.activeCamera}
+        <CameraWithLoadingOrEmpty
+          data={this.props.cameras}
+          messages={messages}
+          activeCamera={this.props.activeCamera}
           onClick={this.onCameraClick}
-          isLoadingCameras={this.state.isLoadingCameras}
+          isLoading={this.props.isLoadingCameras}
         />
 
         <Navigation
-          sol={this.state.sol}
+          sol={this.props.sol}
           onSolDecrease={this.onSolDecrease}
           onSolIncrease={this.onSolIncrease}
         />
 
-        {this.state.cameras && <ImagesWithFetching />}
+        {this.props.cameras && <ImagesWithFetching url={`${API_IMAGES}${imagesQuery}`} />}
       </div>
     );
   }
 }
 
-export default App;
+const mapStateToProps = state => ({
+  rovers: state.rovers,
+  activeRover: state.activeRover,
+  photos: state.photos,
+  sol: state.sol,
+  cameras: state.cameras,
+  activeCamera: state.activeCamera,
+  isLoadingCameras: state.isLoadingCameras,
+  manifestError: state.manifestError
+});
+
+const mapDispatchToProps = dispatch => ({
+  onSetRover: rover => dispatch(doSetRover(rover)),
+  onSetSol: (sol, change) => dispatch(doSetSol(sol, change)),
+  onSetCameras: cameras => dispatch(doSetCameras(cameras)),
+  onSetCamera: camera => dispatch(doSetCamera(camera)),
+  onSetPhotos: (photos, rover) => dispatch(doSetPhotos(photos, rover)),
+  onIsLoadingCameras: isLoading => dispatch(doIsLoadingCameras(isLoading)),
+  onManifestLoadingError: (error) => dispatch(doSetManifestLoadingError(error)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);

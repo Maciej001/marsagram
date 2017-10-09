@@ -1,9 +1,9 @@
 import React from "react";
 import Camera from './Camera'
 
-const Cameras = ({ cameras, activeCamera, onClick }) => (
+const Cameras = ({ data, activeCamera, onClick }) => (
   <div className="cameras">
-    {cameras.map(camera => (
+    {data.map(camera => (
       <Camera
         key={camera}
         name={camera}

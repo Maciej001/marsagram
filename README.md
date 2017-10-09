@@ -25,7 +25,7 @@ The App consists of 4 main components
 
 ### How Marsagram works
 
-First Marsagram fetches the manifest data for the chosen rover.
+At first, Marsagram fetches the manifest data for the chosen rover.
 ```
 {
   photo_manifest: {

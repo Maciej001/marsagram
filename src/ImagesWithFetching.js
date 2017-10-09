@@ -1,19 +1,20 @@
 import React, { Component } from "react";
+import Images from './Images'
 
-const withFetching = url => Comp =>
+const withFetching = Comp =>
   class WithFetch extends Component {
     state = {
       data: {},
-      isLoading: false,
+      isLoading: true,
       error: null
     };
 
     componentDidMount() {
-      this.fetchData(url);
+      this.fetchData(this.props.url);
     }
 
     componentWillReceiveProps(nextProps) {
-      this.fetchData(url);
+      this.fetchData(this.props.url);
     }
 
     fetchData = url => {
@@ -34,16 +35,10 @@ const withFetching = url => Comp =>
         return <p>Fetching data error.</p>;
       }
 
-      if (
-        !this.state.data ||
-        !this.state.data.photos ||
-        this.state.data.photos.length === 0
-      ) {
-        return <p>There are no images available from this camera.</p>;
-      }
-
-      return <Comp {...this.props} {...this.state} />;
+      return <Comp {...this.props} {...this.state}/>;
     }
   };
 
-export default withFetching;
+const ImagesWithFetching = withFetching(Images);
+
+export default ImagesWithFetching;
